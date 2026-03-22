@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { addCategory, fetchCategories, deleteCategory } from '@/api/client';
 import { Button } from '@/components/ui/button';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { X, Edit2, Trash2, Loader } from 'lucide-react';
 import { toast } from 'sonner';
 

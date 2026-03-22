@@ -4,7 +4,6 @@ import { useMockUser } from '../components/MockUserContext';
 import { fetchReports } from '@/api/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { BarChart3 } from 'lucide-react';
 import DevModeBanner from '../components/DevModeBanner';
