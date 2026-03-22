@@ -14,10 +14,10 @@ const MOCK_USERS = {
     role: 'user'
   },
   COMMANDER: {
-    id: '69b911b7f8e0bd097ac6a478',
-    name: 'Dedi Ofek',
-    full_name: 'Dedi Ofek',
-    email: 'dediofek@gmail.com',
+    id: 'cmd-1',
+    name: 'ישראל ישראלי - מפקד',
+    full_name: 'ישראל ישראלי - מפקד',
+    email: 'cmd-1@guardtech.local',
     role: 'commander'
   },
   ADMIN: {
