@@ -4,6 +4,11 @@ import cors from '@fastify/cors';
 import mongoose from 'mongoose';
 import { createClient } from 'redis';
 import amqplib from 'amqplib';
+import type { Channel } from 'amqplib';
+
+import categoryRoutes from './src/routes/category.routes.js';
+import reportRoutes from './src/routes/report.routes.js';
+import userRoutes from './src/routes/user.routes.js';
 
 const app = Fastify({ logger: true });
 
@@ -13,10 +18,12 @@ const REDIS_URI = process.env.REDIS_URI ?? 'redis://localhost:6379';
 const RABBITMQ_URI = process.env.RABBITMQ_URI ?? 'amqp://localhost:5672';
 const PORT = parseInt(process.env.PORT ?? '3000', 10);
 const HOST = process.env.HOST ?? '0.0.0.0';
+const REPORT_NOTIFICATIONS_QUEUE = 'report_notifications';
 
 // ── Connection state ────────────────────────────────────────────────────────
 let redisClient: ReturnType<typeof createClient>;
 let amqpConnection: Awaited<ReturnType<typeof amqplib.connect>> | undefined;
+let amqpChannel: Channel | undefined;
 
 // ── Health route ────────────────────────────────────────────────────────────
 app.get('/api/health', async (_request, reply) => {
@@ -45,6 +52,7 @@ const shutdown = async (signal: string) => {
   await Promise.allSettled([
     mongoose.disconnect(),
     redisClient?.quit(),
+    amqpChannel?.close(),
     amqpConnection?.close(),
   ]);
 
@@ -73,7 +81,14 @@ const start = async () => {
 
     // RabbitMQ
     amqpConnection = await amqplib.connect(RABBITMQ_URI);
+    amqpChannel = await amqpConnection.createChannel();
+    await amqpChannel.assertQueue(REPORT_NOTIFICATIONS_QUEUE, { durable: true });
     app.log.info('RabbitMQ connected');
+
+    // Register routes
+    await app.register(categoryRoutes, { redisClient });
+    await app.register(reportRoutes, { amqpChannel });
+    await app.register(userRoutes);
 
     // Start server
     await app.listen({ port: PORT, host: HOST });

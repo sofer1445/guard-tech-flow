@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/lib/AuthContext';
-import { base44 } from '@/api/base44Client';
+import { fetchReports } from '@/api/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Table, TableHead, TableHeader, TableBody, TableRow, TableCell } from '@/components/ui/table';
@@ -46,12 +46,12 @@ export default function AdminDashboard() {
       navigate('/Home');
       return;
     }
-    fetchReports();
+    fetchReportsData();
   }, []);
 
-  const fetchReports = async () => {
+  const fetchReportsData = async () => {
     try {
-      const allReports = await base44.entities.DamageReport.list();
+      const allReports = await fetchReports();
       setReports(allReports);
     } catch (error) {
       toast.error('שגיאה בטעינת הדוחות');
@@ -61,7 +61,7 @@ export default function AdminDashboard() {
   };
 
   const handleModalSuccess = () => {
-    fetchReports();
+    fetchReportsData();
   };
 
 

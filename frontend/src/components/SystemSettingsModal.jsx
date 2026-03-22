@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { base44 } from '@/api/base44Client';
+import { addCategory, fetchCategories, deleteCategory } from '@/api/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { X, Edit2, Trash2, Loader } from 'lucide-react';
@@ -14,15 +14,15 @@ export default function SystemSettingsModal({ onClose }) {
   const [loadingCategories, setLoadingCategories] = useState(true);
 
   useEffect(() => {
-    base44.functions.invoke('getDeviceCategories', {})
-      .then(res => setDeviceCategories(res.data.data || []))
+    fetchCategories()
+      .then(setDeviceCategories)
       .catch(() => toast.error('שגיאה בטעינת סוגי המכשירים'))
       .finally(() => setLoadingCategories(false));
   }, []);
 
   const refreshCategories = async () => {
-    const res = await base44.functions.invoke('getDeviceCategories', {});
-    setDeviceCategories(res.data.data || []);
+    const categories = await fetchCategories();
+    setDeviceCategories(categories);
     localStorage.removeItem('deviceCategories');
   };
 
@@ -31,7 +31,7 @@ export default function SystemSettingsModal({ onClose }) {
     if (!newCategoryName.trim()) return;
     setAddingCategory(true);
     try {
-      await base44.functions.invoke('addDeviceCategory', { name: newCategoryName.trim() });
+      await addCategory(newCategoryName.trim());
       toast.success('סוג מכשיר התווסף בהצלחה');
       setNewCategoryName('');
       await refreshCategories();
@@ -42,10 +42,10 @@ export default function SystemSettingsModal({ onClose }) {
     }
   };
 
-  const handleDeleteCategory = async (categoryId) => {
+  const handleDeleteCategory = async (categoryId, categoryName) => {
     if (!confirm('האם אתה בטוח שברצונך למחוק קטגוריה זו?')) return;
     try {
-      await base44.functions.invoke('deleteDeviceCategory', { categoryId });
+      await deleteCategory(categoryName);
       toast.success('קטגוריה נמחקה בהצלחה');
       await refreshCategories();
     } catch (error) {
@@ -55,17 +55,10 @@ export default function SystemSettingsModal({ onClose }) {
 
   const handleSaveEdit = async () => {
     if (!editName.trim()) return;
-    try {
-      await base44.functions.invoke('updateDeviceCategory', {
-        categoryId: editingCategory.id,
-        name: editName.trim()
-      });
-      toast.success('קטגוריה עודכנה בהצלחה');
-      setEditingCategory(null);
-      await refreshCategories();
-    } catch (error) {
-      toast.error(error.response?.data?.error || 'שגיאה בעדכון קטגוריה');
-    }
+    
+    // Category update endpoint not yet implemented
+    toast.error('עדכון קטגוריות עדיין לא זמין - אנא צור קטגוריה חדשה');
+    setEditingCategory(null);
   };
 
   return (
@@ -111,7 +104,7 @@ export default function SystemSettingsModal({ onClose }) {
                       <Edit2 className="w-3 h-3" />
                     </button>
                     <button
-                      onClick={() => handleDeleteCategory(category.id)}
+                      onClick={() => handleDeleteCategory(category.id, category.name)}
                       className="p-0.5 hover:bg-red-200 rounded transition"
                       title="מחיקה"
                     >

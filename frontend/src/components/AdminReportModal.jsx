@@ -4,7 +4,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Check, X, Loader } from 'lucide-react';
 import { toast } from 'sonner';
-import { base44 } from '@/api/base44Client';
+import { approveReport } from '@/api/client';
 
 const statusLabels = {
   PENDING_COMMANDER: 'ממתין לאישור מפקד',
@@ -36,7 +36,7 @@ export default function AdminReportModal({ report, onClose, onSuccess }) {
     }
     setActionLoading(true);
     try {
-      await base44.functions.invoke('approveReport', {
+      await approveReport({
         reportId: report.id,
         approved: true,
         adminNotes,
@@ -59,7 +59,7 @@ export default function AdminReportModal({ report, onClose, onSuccess }) {
     }
     setActionLoading(true);
     try {
-      await base44.functions.invoke('approveReport', {
+      await approveReport({
         reportId: report.id,
         approved: false,
         adminNotes: rejectNotes,

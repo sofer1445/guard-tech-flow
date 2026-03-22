@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/lib/AuthContext';
 import { useMockUser } from '../components/MockUserContext';
-import { base44 } from '@/api/base44Client';
+import { fetchReports } from '@/api/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { BarChart3 } from 'lucide-react';
 import DevModeBanner from '../components/DevModeBanner';
 
@@ -13,6 +13,7 @@ export default function Home() {
   const { user } = useAuth();
   const { activeMockUser, switchMockUser } = useMockUser();
   const navigate = useNavigate();
+  const location = useLocation();
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -24,15 +25,21 @@ export default function Home() {
 
     // All roles go directly to their dedicated view
     if (role === 'user') {
-      navigate('/MyReports', { replace: true });
+      if (location.pathname !== '/MyReports') {
+        navigate('/MyReports', { replace: true });
+      }
       return;
     }
     if (role === 'commander') {
-      navigate('/CommanderApprovals', { replace: true });
+      if (location.pathname !== '/CommanderApprovals') {
+        navigate('/CommanderApprovals', { replace: true });
+      }
       return;
     }
     if (role === 'admin') {
-      navigate('/AdminDashboard', { replace: true });
+      if (location.pathname !== '/AdminDashboard') {
+        navigate('/AdminDashboard', { replace: true });
+      }
       return;
     }
 
@@ -40,7 +47,7 @@ export default function Home() {
     const fetchStats = async () => {
       setLoading(true);
       try {
-        const reports = await base44.entities.DamageReport.list();
+      const reports = await fetchReports();
         setStats({
           total: reports.length,
           approved: reports.filter(r => r.status === 'APPROVED').length,
@@ -56,7 +63,7 @@ export default function Home() {
     };
 
     fetchStats();
-  }, [currentUser?.id, role]);
+  }, [currentUser?.id, role, location.pathname, navigate]);
 
   // Show nothing while redirecting non-admin roles
   if (role === 'user' || role === 'commander') return null;

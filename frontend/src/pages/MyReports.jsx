@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/lib/AuthContext';
 import { useMockUser } from '../components/MockUserContext';
-import { base44 } from '@/api/base44Client';
+import { fetchReports as fetchAllReports } from '@/api/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Table, TableHead, TableHeader, TableBody, TableRow, TableCell } from '@/components/ui/table';
@@ -41,17 +41,16 @@ export default function MyReports() {
 
   useEffect(() => {
     if (!currentUserId) return;
-    fetchReports();
+    fetchReportsData();
   }, [currentUserId]);
 
-  const fetchReports = async () => {
+  const fetchReportsData = async () => {
     if (!currentUserId) return;
     try {
       setLoading(true);
-      const data = await base44.entities.DamageReport.filter(
-        { submitterId: currentUserId },
-        '-created_date'
-      );
+      const allReports = await fetchAllReports();
+      const data = allReports.filter(r => r.submitterId === currentUserId)
+        .sort((a, b) => new Date(b.createdAt || b.incidentDate) - new Date(a.createdAt || a.incidentDate));
       setReports(data);
     } catch (error) {
       toast.error('שגיאה בטעינת הדוחות');

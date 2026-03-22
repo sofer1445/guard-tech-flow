@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/lib/AuthContext';
 import { useMockUser } from '../components/MockUserContext';
-import { base44 } from '@/api/base44Client';
+import { approveReport, fetchReports } from '@/api/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Table, TableHead, TableHeader, TableBody, TableRow, TableCell } from '@/components/ui/table';
@@ -62,10 +62,11 @@ export default function CommanderApprovals() {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const [assigned, submitted] = await Promise.all([
-        base44.entities.DamageReport.filter({ commanderId: currentUser.id }),
-        base44.entities.DamageReport.filter({ submitterId: currentUser.id }),
-      ]);
+      const allReports = await fetchReports();
+      
+      const assigned = allReports.filter(r => r.commanderId === currentUser.id);
+      const submitted = allReports.filter(r => r.submitterId === currentUser.id);
+      
       setAllReports(assigned.sort((a, b) => {
         const order = { PENDING_COMMANDER: 0, PENDING_LOGISTICS: 1, APPROVED: 2, REJECTED: 3 };
         return (order[a.status] ?? 99) - (order[b.status] ?? 99) ||
@@ -82,7 +83,7 @@ export default function CommanderApprovals() {
   const handleApprove = async () => {
     setIsActionLoading(true);
     try {
-      await base44.functions.invoke('approveReport', {
+      await approveReport({
         reportId: selectedReport.id,
         approved: true,
         notes: commanderNotes,
@@ -107,7 +108,7 @@ export default function CommanderApprovals() {
     }
     setIsActionLoading(true);
     try {
-      await base44.functions.invoke('approveReport', {
+      await approveReport({
         reportId: selectedReport.id,
         approved: false,
         notes: rejectNotes,

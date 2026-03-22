@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { base44 } from '@/api/base44Client';
+import { fetchCategories } from '@/api/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -19,12 +19,11 @@ export default function EditReportModal({ report, onClose, onSuccess }) {
     photoUrl: report?.photoUrl || '',
   });
   const [deviceCategories, setDeviceCategories] = useState([]);
-  const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    base44.functions.invoke('getDeviceCategories', {})
-      .then(res => setDeviceCategories(res.data.data || []))
+    fetchCategories()
+      .then(setDeviceCategories)
       .catch(() => toast.error('שגיאה בטעינת סוגי המכשירים'));
   }, []);
 
@@ -33,16 +32,9 @@ export default function EditReportModal({ report, onClose, onSuccess }) {
   const handlePhotoUpload = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    setIsUploadingPhoto(true);
-    try {
-      const response = await base44.integrations.Core.UploadFile({ file });
-      setFormData(prev => ({ ...prev, photoUrl: response.file_url }));
-      toast.success('התמונה הועלתה בהצלחה');
-    } catch {
-      toast.error('שגיאה בהעלאת התמונה');
-    } finally {
-      setIsUploadingPhoto(false);
-    }
+    
+    // File upload not yet implemented in standalone mode
+    toast.error('העלאת קבצים עדיין לא זמינה - ניתן להוסיף תמונה בשלב מאוחר יותר');
   };
 
   const handleSave = async () => {
@@ -51,26 +43,9 @@ export default function EditReportModal({ report, onClose, onSuccess }) {
     if (!formData.incidentType) { toast.error('חובה לבחור סוג אירוע'); return; }
     if (!formData.incidentDate) { toast.error('חובה לבחור תאריך אירוע'); return; }
     if (formData.description.trim().length < 10) { toast.error('תיאור חייב להכיל לפחות 10 תווים'); return; }
-    if (formData.incidentType === 'DAMAGE' && !formData.photoUrl) { toast.error('צילום נדרש עבור דוח נזק'); return; }
 
-    setLoading(true);
-    try {
-      await base44.entities.DamageReport.update(report.id, {
-        deviceType: formData.deviceType,
-        deviceId: formData.deviceId,
-        incidentType: formData.incidentType,
-        incidentDate: formData.incidentDate,
-        description: formData.description,
-        photoUrl: formData.photoUrl || null,
-      });
-      toast.success('הדוח עודכן בהצלחה');
-      onSuccess();
-      onClose();
-    } catch (error) {
-      toast.error(error.message || 'שגיאה בעדכון הדוח');
-    } finally {
-      setLoading(false);
-    }
+    // Report update endpoint not yet implemented
+    toast.error('עדכון דוחות עדיין לא זמין - אנא צור דוח חדש');
   };
 
   return (

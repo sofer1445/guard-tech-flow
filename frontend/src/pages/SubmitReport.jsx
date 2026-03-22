@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { base44 } from '@/api/base44Client';
+import { fetchCategories, submitReport, fetchCommanders } from '@/api/client';
 import { useAuth } from '@/lib/AuthContext';
 import { useMockUser } from '@/components/MockUserContext';
 import { Button } from '@/components/ui/button';
@@ -72,7 +72,7 @@ export default function SubmitReport() {
   const [loadingCategories, setLoadingCategories] = useState(true);
 
   useEffect(() => {
-    base44.entities.User.filter({ role: 'commander' })
+    fetchCommanders()
       .then(setCommanders)
       .catch(() => toast.error('שגיאה בטעינת רשימת המפקדים'));
     
@@ -111,9 +111,8 @@ export default function SubmitReport() {
     }
 
     // Fetch fresh data in background
-    base44.functions.invoke('getDeviceCategories', {})
-      .then(response => {
-        const fresh = response.data.data || [];
+    fetchCategories()
+      .then((fresh) => {
         setDeviceCategories(fresh);
         cacheCategories(fresh);
       })
@@ -155,24 +154,21 @@ export default function SubmitReport() {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    setIsUploadingPhoto(true);
-    try {
-      const response = await base44.integrations.Core.UploadFile({ file });
-      const uploadedUrl = response.file_url;
-      setPhotoUrl(uploadedUrl);
-      setValue('photoUrl', uploadedUrl);
-      toast.success('התמונה הועלתה בהצלחה');
-    } catch (error) {
-      toast.error('שגיאה בהעלאת התמונה');
-    } finally {
-      setIsUploadingPhoto(false);
-    }
+    // File upload not yet implemented in standalone mode
+    toast.error('העלאת קבצים עדיין לא זמינה - ניתן להוסיף תמונה בשלב מאוחר יותר');
   };
 
   const onSubmit = async (validatedData) => {
     const selectedCommander = commanders.find(c => c.id === validatedData.commanderId);
     try {
+      const submitterName = user?.full_name || user?.name || '';
+      const submitterId = user?.id || '';
+      const submitterEmail = user?.email || 'no-reply@guardtech.local';
+
       const payload = {
+        submitterId,
+        submitterName,
+        submitterEmail,
         deviceType: validatedData.deviceType,
         deviceId: validatedData.deviceId,
         incidentType: validatedData.incidentType,
@@ -183,15 +179,12 @@ export default function SubmitReport() {
         commanderName: selectedCommander?.full_name || selectedCommander?.name || '',
       };
 
-      // Dev-mode: pass mock user identity so the report is attributed correctly
-      if (activeMockUser) {
-        payload._devSubmitterId = activeMockUser.id;
-        payload._devSubmitterName = activeMockUser.full_name || activeMockUser.name;
-        payload._devSubmitterEmail = activeMockUser.email;
-        payload._devSubmitterRole = activeMockUser.role;
+      if (!payload.submitterId || !payload.submitterName || !payload.commanderName) {
+        toast.error('חסרים פרטי משתמש/מפקד. יש לרענן את הדף ולנסות שוב');
+        return;
       }
 
-      await base44.functions.invoke('submitDamageReport', payload);
+      await submitReport(payload);
 
       toast.success('הדוח נשלח בהצלחה והועבר לאישור המפקד');
       
