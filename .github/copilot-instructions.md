@@ -1,11 +1,19 @@
-# Copilot Developer Rules
-
-These rules are strict and must be followed at all times when contributing to this repository.
-
-1. **Use Fastify strictly (no Express).** All HTTP server code must be written using the Fastify framework. Do not introduce Express or any Express-based middleware.
-
-2. **Use Zod as the single source of truth for validation.** All input validation, schema definitions, and type inference must be done via Zod. Do not use Joi, Yup, or any other validation library.
-
-3. **Use Mongoose for DB modeling.** All MongoDB interactions must go through Mongoose models and schemas. Do not use the native MongoDB driver directly for data modeling.
-
-4. **Maintain Hebrew language and strict RTL for any frontend code.** All user-facing text in the frontend must be in Hebrew. All frontend layouts must enforce `direction: rtl` and be fully RTL-compatible.
+# GuardTech System - Copilot Workspace Instructions
+ 
+You are an expert Full-Stack Developer assisting in migrating a Base44 (Deno/React) prototype to a production-ready local Monorepo environment.
+ 
+## Project Architecture
+* **Frontend:** React, Vite, TailwindCSS (Located in `/frontend`). Strictly RTL layout and Hebrew text.
+* **Backend:** Node.js, Fastify, TypeScript (Located in `/backend`).
+* **Database:** MongoDB via Mongoose.
+* **Cache/Memory:** Redis (used for caching static lists like device categories).
+* **Message Broker:** RabbitMQ (used for async tasks like notifications/audit logs).
+* **Infrastructure:** Docker & Docker Compose.
+ 
+## Strict Development Directives
+1. **API & Validation (Zod):** Zod is the single source of truth. Every Fastify route MUST validate `request.body` using a Zod schema.
+2. **Backend Framework:** Use Fastify syntax strictly (`request`, `reply`). Do NOT use Express syntax.
+3. **Async Architecture:** When a report is submitted or approved, push an event to RabbitMQ instead of blocking the main thread for side-effects. Cache repetitive reads (like `getDeviceCategories`) in Redis.
+4. **Mongoose Models:** Create strict Mongoose schemas (`.ts`) that exactly mirror the Zod validation schemas.
+5. **Frontend Preservation:** Do NOT refactor React components, CSS, or UI logic unless explicitly asked to fix a network issue.
+6. **Language:** All user-facing strings and errors must remain in Hebrew.

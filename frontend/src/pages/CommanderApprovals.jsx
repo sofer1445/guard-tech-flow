@@ -53,11 +53,11 @@ export default function CommanderApprovals() {
   useEffect(() => {
     const role = currentUser?.role?.toLowerCase?.();
     if (role !== 'commander' && role !== 'admin') {
-      navigate('/Home');
+      navigate('/Home', { replace: true });
       return;
     }
     fetchData();
-  }, [currentUser?.id]);
+  }, [currentUser?.id, currentUser?.role, navigate]);
 
   const fetchData = async () => {
     setLoading(true);

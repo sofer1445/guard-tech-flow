@@ -56,6 +56,13 @@ const categoryRoutes: FastifyPluginAsync<CategoryRoutesOptions> = async (fastify
 
       return reply.status(201).send({ success: true, data: category });
     } catch (error) {
+      const maybeMongoError = error as { code?: number };
+      if (maybeMongoError?.code === 11000) {
+        return reply.status(409).send({
+          error: 'סוג מכשיר זה כבר קיים במערכת',
+        });
+      }
+
       fastify.log.error({ error }, 'Failed to create category');
       return reply.status(500).send({ error: 'Failed to create category' });
     }

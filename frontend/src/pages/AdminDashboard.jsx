@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/lib/AuthContext';
+import { useMockUser } from '../components/MockUserContext';
 import { fetchReports } from '@/api/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
@@ -28,7 +29,8 @@ const statusLabels = {
 };
 
 export default function AdminDashboard() {
-  const { user } = useAuth();
+  const { user: authUser } = useAuth();
+  const { activeMockUser } = useMockUser();
   const navigate = useNavigate();
   const [reports, setReports] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -41,13 +43,16 @@ export default function AdminDashboard() {
   const [showSystemSettings, setShowSystemSettings] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
+  const currentUser = activeMockUser || authUser;
+
   useEffect(() => {
-    if (user?.role !== 'admin' && user?.role !== 'ADMIN') {
-      navigate('/Home');
+    const role = currentUser?.role?.toLowerCase?.();
+    if (role !== 'admin') {
+      navigate('/Home', { replace: true });
       return;
     }
     fetchReportsData();
-  }, []);
+  }, [currentUser?.id, currentUser?.role, navigate]);
 
   const fetchReportsData = async () => {
     try {

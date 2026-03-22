@@ -1,6 +1,8 @@
 import 'dotenv/config';
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
+import swagger from '@fastify/swagger';
+import swaggerUI from '@fastify/swagger-ui';
 import mongoose from 'mongoose';
 import { createClient } from 'redis';
 import amqplib from 'amqplib';
@@ -19,6 +21,21 @@ const RABBITMQ_URI = process.env.RABBITMQ_URI ?? 'amqp://localhost:5672';
 const PORT = parseInt(process.env.PORT ?? '3000', 10);
 const HOST = process.env.HOST ?? '0.0.0.0';
 const REPORT_NOTIFICATIONS_QUEUE = 'report_notifications';
+
+app.get('/', async (_request, reply) => {
+  return reply.status(200).send({
+    name: 'guard-tech-flow-backend',
+    status: 'ok',
+    routes: {
+      health: '/api/health',
+      docs: '/docs',
+      openApiJson: '/docs/json',
+      categories: '/api/categories',
+      reports: '/api/reports',
+      commanders: '/api/users/commanders',
+    },
+  });
+});
 
 // ── Connection state ────────────────────────────────────────────────────────
 let redisClient: ReturnType<typeof createClient>;
@@ -68,6 +85,31 @@ const start = async () => {
   try {
     // Register plugins
     await app.register(cors, { origin: true });
+    await app.register(swagger, {
+      openapi: {
+        info: {
+          title: 'Guard Tech Flow API',
+          description: 'API documentation for Guard Tech Flow backend',
+          version: '1.0.0',
+        },
+      },
+    });
+    await app.register(swaggerUI, {
+      routePrefix: '/docs',
+      staticCSP: true,
+      uiConfig: {
+        docExpansion: 'list',
+        deepLinking: false,
+      },
+      uiHooks: {
+        onRequest: (_request, _reply, next) => {
+          next();
+        },
+        preHandler: (_request, _reply, next) => {
+          next();
+        },
+      },
+    });
 
     // MongoDB
     await mongoose.connect(MONGO_URI);
