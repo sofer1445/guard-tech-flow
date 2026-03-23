@@ -2,11 +2,14 @@ import { useEffect, useState } from 'react';
 import { useAuth } from '@/lib/AuthContext';
 import { useMockUser } from '../components/MockUserContext';
 import { fetchReports } from '@/api/client';
-import { Button } from '@/components/ui/button';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import * as ButtonUI from '@/components/ui/button';
+import * as CardUI from '@/components/ui/card';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { BarChart3 } from 'lucide-react';
 import DevModeBanner from '../components/DevModeBanner';
+
+const { Button } = /** @type {any} */ (ButtonUI);
+const { Card, CardHeader, CardTitle, CardContent } = /** @type {any} */ (CardUI);
 
 export default function Home() {
   const { user } = useAuth();
