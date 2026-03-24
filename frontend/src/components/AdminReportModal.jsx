@@ -43,7 +43,7 @@ export default function AdminReportModal({ report, onClose, onSuccess }) {
       await approveReport({
         reportId: report.id,
         approved: true,
-        adminNotes,
+        notes: adminNotes,
         treatmentType,
       });
       toast.success('הדוח אושר בהצלחה');
@@ -66,7 +66,7 @@ export default function AdminReportModal({ report, onClose, onSuccess }) {
       await approveReport({
         reportId: report.id,
         approved: false,
-        adminNotes: rejectNotes,
+        notes: rejectNotes,
       });
       toast.success('הדוח נדחה');
       onSuccess();
