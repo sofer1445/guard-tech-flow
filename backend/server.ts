@@ -1,6 +1,7 @@
 import 'dotenv/config';
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
+import multipart from '@fastify/multipart';
 import swagger from '@fastify/swagger';
 import swaggerUI from '@fastify/swagger-ui';
 import mongoose from 'mongoose';
@@ -10,7 +11,10 @@ import type { Channel } from 'amqplib';
 
 import categoryRoutes from './src/routes/category.routes.js';
 import reportRoutes from './src/routes/report.routes.js';
+import uploadRoutes from './src/routes/upload.routes.js';
 import userRoutes from './src/routes/user.routes.js';
+import { setupMinio } from './src/lib/minio.js';
+import { startUploadCleanupScheduler } from './src/jobs/uploadCleanup.js';
 
 const app = Fastify({ logger: true });
 
@@ -32,6 +36,7 @@ app.get('/', async (_request, reply) => {
       openApiJson: '/docs/json',
       categories: '/api/categories',
       reports: '/api/reports',
+      upload: '/api/upload',
       commanders: '/api/users/commanders',
     },
   });
@@ -41,6 +46,7 @@ app.get('/', async (_request, reply) => {
 let redisClient: ReturnType<typeof createClient>;
 let amqpConnection: Awaited<ReturnType<typeof amqplib.connect>> | undefined;
 let amqpChannel: Channel | undefined;
+let uploadCleanupStop: (() => void) | undefined;
 
 // ── Health route ────────────────────────────────────────────────────────────
 app.get('/api/health', async (_request, reply) => {
@@ -64,6 +70,8 @@ app.get('/api/health', async (_request, reply) => {
 const shutdown = async (signal: string) => {
   app.log.info(`Received ${signal}. Shutting down gracefully...`);
 
+  uploadCleanupStop?.();
+
   await app.close();
 
   await Promise.allSettled([
@@ -83,8 +91,17 @@ process.on('SIGTERM', () => shutdown('SIGTERM').catch((err) => { console.error(e
 // ── Bootstrap ───────────────────────────────────────────────────────────────
 const start = async () => {
   try {
+    const maxUploadSizeMb = parseInt(process.env.UPLOAD_MAX_FILE_SIZE_MB ?? '5', 10);
+    const maxUploadSizeBytes = Math.max(1, maxUploadSizeMb) * 1024 * 1024;
+
     // Register plugins
     await app.register(cors, { origin: true });
+    await app.register(multipart, {
+      limits: {
+        fileSize: maxUploadSizeBytes,
+        files: 1,
+      },
+    });
     await app.register(swagger, {
       openapi: {
         info: {
@@ -127,10 +144,17 @@ const start = async () => {
     await amqpChannel.assertQueue(REPORT_NOTIFICATIONS_QUEUE, { durable: true });
     app.log.info('RabbitMQ connected');
 
+    // MinIO
+    await setupMinio();
+    app.log.info('MinIO ready');
+
     // Register routes
     await app.register(categoryRoutes, { redisClient });
     await app.register(reportRoutes, { amqpChannel });
+    await app.register(uploadRoutes);
     await app.register(userRoutes);
+
+    uploadCleanupStop = startUploadCleanupScheduler(app);
 
     // Start server
     await app.listen({ port: PORT, host: HOST });

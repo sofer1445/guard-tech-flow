@@ -1,4 +1,4 @@
-import { Toaster } from "@/components/ui/toaster"
+import { Toaster } from "sonner"
 import { QueryClientProvider } from '@tanstack/react-query'
 import { queryClientInstance } from '@/lib/query-client'
 import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-dom';
@@ -64,11 +64,11 @@ function App() {
     <AuthProvider>
       <QueryClientProvider client={queryClientInstance}>
         <MockUserProvider>
-          <Router>
+          <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
             <AuthenticatedApp />
           </Router>
         </MockUserProvider>
-        <Toaster />
+        <Toaster richColors position="top-center" />
       </QueryClientProvider>
     </AuthProvider>
   )

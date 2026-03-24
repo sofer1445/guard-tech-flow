@@ -59,3 +59,21 @@ export const approveReport = async (data) => {
   const response = await apiClient.post('/reports/approve', data);
   return response.data;
 };
+
+export const uploadImage = async (file) => {
+  const formData = new FormData();
+  formData.append('file', file);
+
+  const response = await apiClient.post('/upload', formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  });
+
+  return response?.data?.url;
+};
+
+export const deleteImage = async (filename) => {
+  const response = await apiClient.delete(`/upload/${encodeURIComponent(filename)}`);
+  return response.data;
+};
