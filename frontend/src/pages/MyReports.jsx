@@ -24,6 +24,14 @@ const DEVICE_TYPE_LABELS = {
   PHONE: 'טלפון', TABLET: 'טאבלט', ROUTER: 'נתב', SERVER: 'שרת', OTHER: 'אחר',
 };
 
+const getRejectionReason = (report) => {
+  if (report.status !== 'REJECTED') {
+    return '';
+  }
+
+  return report.adminNotes?.trim() || report.commanderNotes?.trim() || '';
+};
+
 export default function MyReports() {
   const { user } = useAuth();
   const { activeMockUser } = useMockUser();
@@ -130,6 +138,7 @@ export default function MyReports() {
                   <TableBody>
                     {paginatedReports.map(report => {
                       const statusInfo = STATUS_LABELS[report.status] || { label: report.status, color: '' };
+                      const rejectionReason = getRejectionReason(report);
                       return (
                         <TableRow key={report.id} className="hover:bg-slate-50">
                           <TableCell className="font-medium">
@@ -153,9 +162,16 @@ export default function MyReports() {
                             </span>
                           </TableCell>
                           <TableCell>
-                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-medium border ${statusInfo.color}`}>
-                              {statusInfo.label}
-                            </span>
+                            <div className="space-y-1">
+                              <span className={`inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-medium border ${statusInfo.color}`}>
+                                {statusInfo.label}
+                              </span>
+                              {rejectionReason && (
+                                <p className="text-xs text-red-700 max-w-[220px] truncate" title={rejectionReason}>
+                                  סיבת דחייה: {rejectionReason}
+                                </p>
+                              )}
+                            </div>
                           </TableCell>
                           <TableCell className="flex gap-2">
                             <Button size="sm" variant="outline" onClick={() => setSelectedReport(report)}>
@@ -270,6 +286,13 @@ export default function MyReports() {
                   <div className="bg-green-50 p-3 rounded border border-green-200">
                     <p className="text-sm text-green-700 font-medium mb-1">אופן הטיפול</p>
                     <p className="text-sm">{selectedReport.treatmentType}</p>
+                  </div>
+                )}
+
+                {selectedReport.status === 'REJECTED' && getRejectionReason(selectedReport) && (
+                  <div className="bg-red-50 p-3 rounded border border-red-200">
+                    <p className="text-sm text-red-700 font-medium mb-1">סיבת דחייה</p>
+                    <p className="text-sm">{getRejectionReason(selectedReport)}</p>
                   </div>
                 )}
 
