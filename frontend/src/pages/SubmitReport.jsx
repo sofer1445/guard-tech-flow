@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { fetchCategories, submitReport, fetchCommanders } from '@/api/client';
+import { fetchCategories, submitReport, fetchCommanders, uploadImage, deleteImage } from '@/api/client';
 import { useAuth } from '@/lib/AuthContext';
 import { useMockUser } from '@/components/MockUserContext';
 import { Button } from '@/components/ui/button';
@@ -12,7 +12,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
-import { ArrowRight, Upload, AlertCircle } from 'lucide-react';
+import { ArrowRight, Upload, AlertCircle, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 // Zod Schema
@@ -154,8 +154,60 @@ export default function SubmitReport() {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // File upload not yet implemented in standalone mode
-    toast.error('העלאת קבצים עדיין לא זמינה - ניתן להוסיף תמונה בשלב מאוחר יותר');
+    if (!['image/png', 'image/jpeg', 'image/webp'].includes(file.type)) {
+      toast.error('ניתן להעלות רק קבצי JPG, PNG או WEBP');
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('גודל התמונה המקסימלי הוא 5MB');
+      return;
+    }
+
+    setIsUploadingPhoto(true);
+    try {
+      const uploadedUrl = await uploadImage(file);
+
+      if (!uploadedUrl) {
+        toast.error('שגיאה בהעלאת התמונה');
+        return;
+      }
+
+      setPhotoUrl(uploadedUrl);
+      setValue('photoUrl', uploadedUrl, { shouldValidate: true, shouldDirty: true });
+      toast.success('התמונה הועלתה בהצלחה');
+    } catch (error) {
+      const errorMessage = error?.response?.data?.error || error?.message || 'שגיאה בהעלאת התמונה';
+      toast.error(errorMessage);
+      setPhotoUrl('');
+      setValue('photoUrl', '', { shouldValidate: true });
+    } finally {
+      setIsUploadingPhoto(false);
+    }
+  };
+
+  const handleRemoveImage = async () => {
+    if (!photoUrl) return;
+
+    const fileName = photoUrl.split('/').pop();
+    if (!fileName) {
+      setPhotoUrl('');
+      setValue('photoUrl', '', { shouldValidate: true, shouldDirty: true });
+      return;
+    }
+
+    setIsUploadingPhoto(true);
+    try {
+      await deleteImage(fileName);
+      setPhotoUrl('');
+      setValue('photoUrl', '', { shouldValidate: true, shouldDirty: true });
+      toast.success('התמונה הוסרה בהצלחה');
+    } catch (error) {
+      const errorMessage = error?.response?.data?.error || error?.message || 'שגיאה בהסרת התמונה';
+      toast.error(errorMessage);
+    } finally {
+      setIsUploadingPhoto(false);
+    }
   };
 
   const onSubmit = async (validatedData) => {
@@ -355,20 +407,43 @@ export default function SubmitReport() {
                   <div className={`border-2 border-dashed rounded-lg p-6 transition ${
                     photoUrl ? 'border-green-400 bg-green-50' : 'border-slate-300 bg-slate-50'
                   } ${errors.photoUrl ? 'border-red-500 bg-red-50' : ''}`}>
-                    <label className="flex flex-col items-center gap-2 cursor-pointer">
-                      <Upload className={`w-8 h-8 ${photoUrl ? 'text-green-600' : 'text-slate-400'}`} />
-                      <span className="text-sm font-medium text-slate-700">
-                        {isUploadingPhoto ? 'מעלה תמונה...' : photoUrl ? '✓ תמונה הועלתה בהצלחה' : 'לחץ להעלאת תמונה'}
-                      </span>
-                      <span className="text-xs text-slate-500">PNG, JPG עד 5MB</span>
-                      <input
-                        type="file"
-                        accept="image/png,image/jpeg"
-                        onChange={handlePhotoUpload}
-                        disabled={isUploadingPhoto}
-                        className="hidden"
-                      />
-                    </label>
+                    {!photoUrl ? (
+                      <label className="flex flex-col items-center gap-2 cursor-pointer">
+                        <Upload className={`w-8 h-8 ${photoUrl ? 'text-green-600' : 'text-slate-400'}`} />
+                        <span className="text-sm font-medium text-slate-700">
+                          {isUploadingPhoto ? 'מעלה תמונה...' : 'לחץ להעלאת תמונה'}
+                        </span>
+                        <span className="text-xs text-slate-500">PNG, JPG עד 5MB</span>
+                        <input
+                          type="file"
+                          accept="image/png,image/jpeg,image/webp"
+                          onChange={handlePhotoUpload}
+                          disabled={isUploadingPhoto}
+                          className="hidden"
+                        />
+                      </label>
+                    ) : (
+                      <div className="flex flex-col items-center gap-3">
+                        <img
+                          src={photoUrl}
+                          alt="צילום נזק"
+                          className="rounded-lg max-h-48 object-cover border border-slate-200"
+                        />
+                        <div className="flex items-center gap-2 text-green-700 text-sm font-medium">
+                          ✓ תמונה הועלתה בהצלחה
+                        </div>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={handleRemoveImage}
+                          disabled={isUploadingPhoto}
+                          className="gap-2"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                          הסר תמונה
+                        </Button>
+                      </div>
+                    )}
                   </div>
                   {errors.photoUrl && (
                     <p className="text-red-600 text-sm mt-1 flex items-center gap-1">
@@ -414,7 +489,7 @@ export default function SubmitReport() {
               {/* Submit Button */}
               <Button
                 type="submit"
-                disabled={isSubmitting}
+                disabled={isSubmitting || isUploadingPhoto}
                 className="w-full bg-blue-600 hover:bg-blue-700 text-white h-11 text-base font-semibold"
               >
                 {isSubmitting ? 'שלח דיווח...' : 'שלח דיווח'}

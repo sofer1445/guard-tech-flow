@@ -4,6 +4,10 @@ import { Button } from '@/components/ui/button';
 import { X, Edit2, Trash2, Loader } from 'lucide-react';
 import { toast } from 'sonner';
 
+const getApiErrorMessage = (error, fallbackMessage) => {
+  return error?.response?.data?.error || error?.response?.data?.message || error?.message || fallbackMessage;
+};
+
 export default function SystemSettingsModal({ onClose }) {
   const [deviceCategories, setDeviceCategories] = useState([]);
   const [newCategoryName, setNewCategoryName] = useState('');
@@ -48,7 +52,12 @@ export default function SystemSettingsModal({ onClose }) {
       toast.success('קטגוריה נמחקה בהצלחה');
       await refreshCategories();
     } catch (error) {
-      toast.error(error.response?.data?.error || 'שגיאה במחיקת קטגוריה');
+      if (error?.response?.status === 409) {
+        toast.error('לא ניתן למחוק קטגוריה שיש לה דוחות מקושרים');
+        return;
+      }
+
+      toast.error(getApiErrorMessage(error, 'שגיאה במחיקת קטגוריה'));
     }
   };
 

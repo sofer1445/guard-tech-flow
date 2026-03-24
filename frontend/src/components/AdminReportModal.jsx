@@ -20,6 +20,10 @@ const TREATMENT_OPTIONS = [
   { value: 'נגרע מהמלאי (השבתה)', label: 'נגרע מהמלאי (השבתה)' },
 ];
 
+const getApiErrorMessage = (error, fallbackMessage) => {
+  return error?.response?.data?.error || error?.response?.data?.message || error?.message || fallbackMessage;
+};
+
 export default function AdminReportModal({ report, onClose, onSuccess }) {
   const [adminNotes, setAdminNotes] = useState('');
   const [treatmentType, setTreatmentType] = useState('');
@@ -46,7 +50,7 @@ export default function AdminReportModal({ report, onClose, onSuccess }) {
       onSuccess();
       onClose();
     } catch (error) {
-      toast.error(error.message || 'שגיאה בעדכון הדוח');
+      toast.error(getApiErrorMessage(error, 'שגיאה בעדכון הדוח'));
     } finally {
       setActionLoading(false);
     }
@@ -68,7 +72,7 @@ export default function AdminReportModal({ report, onClose, onSuccess }) {
       onSuccess();
       onClose();
     } catch (error) {
-      toast.error(error.message || 'שגיאה בעדכון הדוח');
+      toast.error(getApiErrorMessage(error, 'שגיאה בעדכון הדוח'));
     } finally {
       setActionLoading(false);
     }
